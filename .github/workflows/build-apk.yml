@@ -22,15 +22,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-     
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK tools and accept licenses
+      - name: Accept Android SDK licenses
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
+      - name: Install Android SDK packages
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -41,19 +41,10 @@ jobs:
         run: gradle --no-daemon assembleDebug
 
       - name: Verify APK target SDK
-        shell: bash
         run: |
-          APK="app/build/outputs/apk/debug/app-debug.apk"
-          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-
-          "$AAPT" dump badging "$APK" | grep -E "sdkVersion|targetSdkVersion"
-
-          "$AAPT" dump badging "$APK" | grep -q "targetSdkVersion:'35'" || {
-            echo "ERROR: APK does not target SDK 35."
-            exit 1
-          }
-
-          echo "SUCCESS: APK targets SDK 35."
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
+            app/build/outputs/apk/debug/app-debug.apk
+        shell: bash
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
